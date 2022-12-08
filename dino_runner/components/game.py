@@ -71,8 +71,26 @@ class Game:
             self.x_pos_bg = 0
         self.x_pos_bg -= self.game_speed
     
+    def text_message(self, text, x_pos, y_pos):
+        font = pygame.font.Font(FONT_STYLE, 40)
+        message = font.render(text, True, (0, 0, 0))
+        message_rect  = message.get_rect()
+        message_rect.center = ( x_pos, y_pos)
+        self.screen.blit(message, message_rect)
+
+    def draw_death_count(self):
+        text = f'You Die: {self.death_count}'
+        x_pos = SCREEN_WIDTH // 2 
+        half_screen_heignt = SCREEN_HEIGHT //2
+        y_pos = half_screen_heignt + 100
+        self.text_message(text, x_pos, y_pos)
+
     def draw_score(self):
-        pass
+        text = f'Your Score: {self.score}'
+        x_pos = SCREEN_WIDTH // 2 
+        half_screen_heignt = SCREEN_HEIGHT //2
+        y_pos = half_screen_heignt + 50
+        self.text_message(text, x_pos, y_pos)
 
     def show_menu(self):
         #Poner fondo a la pantalla
@@ -80,16 +98,16 @@ class Game:
         #mostrar mensaje de inicio
         half_screen_width = SCREEN_WIDTH // 2 
         half_screen_heignt = SCREEN_HEIGHT //2
-        if not self.death_count:
-            font = pygame.font.Font(FONT_STYLE, 40)
-            message = font.render('Pass any key to start', True, (0, 0, 0))
-            message_rect  = message.get_rect()
-            message_rect.center = ( half_screen_width, half_screen_heignt)
-            self.screen.blit(message, message_rect)
-        else:
-            print(self.death_count)
         #mostrar imagen como icono
-        self.screen.blit(DINO_START, (half_screen_width-20, 120))
+        self.screen.blit(DINO_START, (half_screen_width-20, half_screen_heignt -140))
+        if not self.death_count:
+            text = 'Pass any key to start'
+            self.text_message(text, half_screen_width, half_screen_heignt)
+        else:
+            text = 'Pass any key to restart'
+            self.text_message(text, half_screen_width, half_screen_heignt)
+            self.draw_score()
+            self.draw_death_count()
         #Actualizar pantalla
         pygame.display.flip()
         #manejar eventos
