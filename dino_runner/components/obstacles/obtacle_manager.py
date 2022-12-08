@@ -9,14 +9,15 @@ from dino_runner.utils.constants import BIRD, LARGE_CACTUS, SMALL_CACTUS
 class ObstacleManager:
     def __init__(self):
         self.obstacles: list[Obstacle] = []
-    
+
     def update(self, game):
         if len(self.obstacles) == 0:
-            if random.randint(0,2) == 0:
+            random_elec = random.randint(0,2)
+            if random_elec == 0:
                 self.obstacles.append(Cactus(LARGE_CACTUS))
-            elif random.randint(0,2) == 1:
+            elif random_elec == 1:
                 self.obstacles.append(SmallCactus(SMALL_CACTUS))
-            elif random.randint(0,2) == 2:
+            elif random_elec == 2:
                 self.obstacles.append(Bird(BIRD))
 
         for obstacle in self.obstacles:
@@ -24,7 +25,11 @@ class ObstacleManager:
             if game.player.dino_rect.colliderect(obstacle.rect):
                 pygame.time.delay(500)
                 game.playing = False
+                game.death_count += 1
 
     def draw(self, screen):
         for obstacle in self.obstacles:
             obstacle.draw(screen)
+
+    def reset_obtacles(self):
+        self.obstacles = []
