@@ -1,8 +1,14 @@
+import random
 import pygame
 from dino_runner.components.obstacles.obtacle_manager import ObstacleManager
 from dino_runner.components.obstacles.score import Score
-from dino_runner.utils.constants import BG, DINO_START, FONT_STYLE, ICON, SCREEN_HEIGHT, SCREEN_WIDTH, TITLE, FPS
+from dino_runner.components.player_hearts.player_heart_manager import PlayerHeartManager
+from dino_runner.components.power_ups.power_up_manager import PowerUpManager
+from dino_runner.utils.constants import BG, CLOUD, DINO_START, ICON, RESET, SCREEN_HEIGHT, SCREEN_WIDTH, TITLE, FPS
 from dino_runner.components.dinosaur import Dinosaur
+from dino_runner.utils.text_utils import draw_message_components
+
+INITIAL_GAME_SPEED = 20
 
 class Game:
     def __init__(self):
@@ -12,13 +18,17 @@ class Game:
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.clock = pygame.time.Clock()
         self.playing = False
-        self.game_speed = 20
+        self.game_speed = INITIAL_GAME_SPEED
         self.x_pos_bg = 0
         self.y_pos_bg = 380
+        self.x_cloud = SCREEN_WIDTH + random.randint(800, 1000)
+        self.y_cloud = random.randint(50, 100)
 
         self.player = Dinosaur()
         self.obstacle_manager = ObstacleManager()
+        self.power_up_manager = PowerUpManager()
         self.score = Score()
+        self.player_heart_manager = PlayerHeartManager()
         self.death_count = 0
 
         self.executing = False
@@ -34,11 +44,18 @@ class Game:
     def run(self):
         # Game loop: events - update - draw
         self.playing = True
-        self.obstacle_manager.reset_obtacles()
+        self.reset_game()
         while self.playing:
             self.events()
             self.update()
             self.draw()
+
+    def reset_game(self):
+        self.obstacle_manager.reset_obtacles()
+        self.game_speed = INITIAL_GAME_SPEED
+        self.score.reset_score()
+        self.player_heart_manager.reset_heart_count()
+        self.power_up_manager.reset_power_ups()
 
     def events(self):
         for event in pygame.event.get():
@@ -51,14 +68,20 @@ class Game:
         self.player.update(user_input)
         self.obstacle_manager.update(self)
         self.score.update(self)
+        self.power_up_manager.update(self.score.current_score, self.game_speed, self.player)
+        self.player_heart_manager.update(self.score.current_score)
 
     def draw(self):
         self.clock.tick(FPS)
         self.screen.fill((255, 255, 255))
         self.draw_background()
+        self.draw_cloud()
         self.player.draw(self.screen)
+        self.player.check_power_up(self.screen)
         self.obstacle_manager.draw(self.screen)
         self.score.draw(self.screen)
+        self.player_heart_manager.draw(self.screen)
+        self.power_up_manager.draw(self.screen)
         pygame.display.update()
         pygame.display.flip()
 
@@ -70,27 +93,22 @@ class Game:
             self.screen.blit(BG, (image_width + self.x_pos_bg, self.y_pos_bg))
             self.x_pos_bg = 0
         self.x_pos_bg -= self.game_speed
-    
-    def text_message(self, text, x_pos, y_pos):
-        font = pygame.font.Font(FONT_STYLE, 40)
-        message = font.render(text, True, (0, 0, 0))
-        message_rect  = message.get_rect()
-        message_rect.center = ( x_pos, y_pos)
-        self.screen.blit(message, message_rect)
 
+    def draw_cloud(self):
+        cloud_width = CLOUD.get_width()
+        self.screen.blit(CLOUD, (self.x_cloud, self.y_cloud))
+        self.screen.blit(CLOUD, (cloud_width + self.x_cloud, self.y_cloud))
+        if self.x_cloud < -cloud_width:
+            self.x_cloud = SCREEN_WIDTH + random.randint(2500, 3000)
+            self.y_cloud = random.randint(50, 100)
+        self.x_cloud -= self.game_speed
     def draw_death_count(self):
-        text = f'You Die: {self.death_count}'
-        x_pos = SCREEN_WIDTH // 2 
         half_screen_heignt = SCREEN_HEIGHT //2
-        y_pos = half_screen_heignt + 100
-        self.text_message(text, x_pos, y_pos)
+        draw_message_components(f'Your Die: {self.death_count}', self.screen, pos_y_center= half_screen_heignt+100)
 
     def draw_score(self):
-        text = f'Your Score: {self.score}'
-        x_pos = SCREEN_WIDTH // 2 
         half_screen_heignt = SCREEN_HEIGHT //2
-        y_pos = half_screen_heignt + 50
-        self.text_message(text, x_pos, y_pos)
+        draw_message_components(f'Your Score: {self.score.current_score}', self.screen, pos_y_center= half_screen_heignt+50)
 
     def show_menu(self):
         #Poner fondo a la pantalla
@@ -99,13 +117,12 @@ class Game:
         half_screen_width = SCREEN_WIDTH // 2 
         half_screen_heignt = SCREEN_HEIGHT //2
         #mostrar imagen como icono
-        self.screen.blit(DINO_START, (half_screen_width-20, half_screen_heignt -140))
         if not self.death_count:
-            text = 'Pass any key to start'
-            self.text_message(text, half_screen_width, half_screen_heignt)
+            self.screen.blit(DINO_START, (half_screen_width-20, half_screen_heignt -140))
+            draw_message_components('Pass any key to start', self.screen)
         else:
-            text = 'Pass any key to restart'
-            self.text_message(text, half_screen_width, half_screen_heignt)
+            self.screen.blit(RESET, (half_screen_width-20, half_screen_heignt -140))
+            draw_message_components('Pass any key to restart', self.screen)
             self.draw_score()
             self.draw_death_count()
         #Actualizar pantalla
